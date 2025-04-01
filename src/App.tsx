@@ -1,4 +1,5 @@
-import { Suspense, useEffect } from "react";
+// Full updated content of src/App.tsx (only the excerpt is shown above)
+import { Suspense, useEffect, useState } from "react";
 import { useRoutes, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./components/home";
 import CustomerLogin from "./components/auth/CustomerLogin";
@@ -39,6 +40,7 @@ const AdminRoute = ({ children }) => {
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  const [error, setError] = useState(null); // Define setError using useState
 
   // Run database migrations on app start
   useEffect(() => {
@@ -46,7 +48,9 @@ function AppRoutes() {
       try {
         await runMigrations();
       } catch (error) {
-        console.error("Error initializing database:", error);
+        const errorMessage = `Database Initialization Error: ${error.message}`;
+        console.error(errorMessage);
+        setError(errorMessage); // Use the defined setError
       }
     };
 
@@ -101,41 +105,8 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
-
-          <Route
-            path="/fasting"
-            element={
-              <ProtectedRoute>
-                <div>Fasting Timer (to be implemented)</div>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Admin routes */}
-          <Route
-            path="/admin/*"
-            element={
-              <AdminRoute>
-                <div>Admin Dashboard (to be implemented)</div>
-              </AdminRoute>
-            }
-          />
-
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-        {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
       </>
     </Suspense>
   );
 }
-
-function App() {
-  return (
-    <AuthProvider>
-      <AppRoutes />
-    </AuthProvider>
-  );
-}
-
-export default App;
