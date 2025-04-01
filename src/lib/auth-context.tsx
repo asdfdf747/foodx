@@ -31,15 +31,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } = await supabase.auth.getSession();
 
       if (session?.user) {
-        // Get user data from our users table
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
+        try {
+          // Get user data from our users table
+          const { data, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
 
-        if (!error && data) {
-          setUser(data as User);
+          if (!error && data) {
+            setUser(data as User);
+          } else if (error) {
+            // If user doesn't exist in our users table yet, create it
+            const { error: insertError } = await supabase.from("users").insert([
+              {
+                id: session.user.id,
+                email: session.user.email,
+                role: "customer",
+                is_suspended: false,
+              },
+            ]);
+
+            if (!insertError) {
+              // Fetch the user again after creating
+              const { data: newUser } = await supabase
+                .from("users")
+                .select("*")
+                .eq("id", session.user.id)
+                .single();
+
+              if (newUser) {
+                setUser(newUser as User);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching user data:", err);
         }
       }
 
@@ -53,15 +80,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        // Get user data from our users table
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
+        try {
+          // Get user data from our users table
+          const { data, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
 
-        if (!error && data) {
-          setUser(data as User);
+          if (!error && data) {
+            setUser(data as User);
+          } else {
+            // If user doesn't exist in our users table yet, create it
+            const { error: insertError } = await supabase.from("users").insert([
+              {
+                id: session.user.id,
+                email: session.user.email,
+                role: "customer",
+                is_suspended: false,
+              },
+            ]);
+
+            if (!insertError) {
+              // Fetch the user again after creating
+              const { data: newUser } = await supabase
+                .from("users")
+                .select("*")
+                .eq("id", session.user.id)
+                .single();
+
+              if (newUser) {
+                setUser(newUser as User);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error in auth state change:", err);
         }
       } else {
         setUser(null);
